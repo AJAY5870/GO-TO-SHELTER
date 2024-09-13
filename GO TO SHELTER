@@ -1,1 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Last Minute Before Earth is Destroyed</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+            color: white;
+            font-family: sans-serif;
+        }
+        #timer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 36px;
+        }
+        #message {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 24px;
+        }
+        canvas {
+            display: block;
+            margin: 0;
+        }
+        /* Joystick controls */
+        .joystick {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .joystick button {
+            background-color: white;
+            color: black;
+            padding: 20px;
+            margin: 5px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        .joystick-controls {
+            display: flex;
+        }
+        #restartBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            padding: 10px;
+            background-color: white;
+            color: black;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="timer">60</div>
+    <div id="message">Find shelter before the Earth is destroyed!</div>
+    <canvas id="gameCanvas"></canvas>
 
+    <!-- Joystick controls for movement -->
+    <div class="joystick">
+        <button id="up">↑</button>
+        <div class="joystick-controls">
+            <button id="left">←</button>
+            <button id="down">↓</button>
+            <button id="right">→</button>
+        </div>
+    </div>
+
+    <!-- Restart Button -->
+    <button id="restartBtn" style="display:none;">Restart Game</button>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Load images
+const playerImg = new Image();
+playerImg.src = 'https://i.postimg.cc/wvRhccXn/ei-1726229421705-removebg-preview.png';
+
+const asteroidImg = new Image();
+asteroidImg.src = 'https://i.postimg.cc/kXMQXhfX/ei-1726230355132-removebg-preview.png';  // New asteroid image
+
+const shelterImg = new Image();
+shelterImg.src = 'https://i.postimg.cc/Y2vLSGWZ/ei-1726230704375-removebg-preview.png';  // New shelter image
+
+const backgroundImg = new Image();
+backgroundImg.src = 'https://i.postimg.cc/d3jpwTWN/images.jpg';
+
+let timeLeft = 60; // 60 seconds
+const timerDisplay = document.getElementById('timer');
+const messageDisplay = document.getElementById('message');
+const restartBtn = document.getElementById('restartBtn');
+let countdown;
+let player = { x: canvas.width / 2, y: canvas.height - 100, size: 100, speed: 5 };  // Player size increased (50 * 2 = 100)
+let obstacles = [];
+let shelter = { x: Math.random() * canvas.width, y: 50, size: 100 };  // Shelter size for image
+let gameOver = false;
+
+function startGame() {
+    timeLeft = 60;
+    gameOver = false;
+    player.x = canvas.width / 2;
+    player.y = canvas.height - 100;  // Adjusted for new player size
+    obstacles = [];
+    shelter = { x: Math.random() * canvas.width, y: 50, size: 100 };
+    messageDisplay.textContent = 'Find shelter before the Earth is destroyed!';
+    restartBtn.style.display = 'none';
+
+    countdown = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            endGame(false);
+        }
+    }, 1000);
+
+    spawnObstacles();
+    gameLoop();
+}
+
+function gameLoop() {
+    if (gameOver) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw background
+    ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+
+    // Draw player
+    ctx.drawImage(playerImg, player.x, player.y, player.size, player.size);
+
+    // Draw shelter
+    ctx.drawImage(shelterImg, shelter.x, shelter.y, shelter.size, shelter.size);  // Shelter image drawn
+
+    // Draw obstacles (2x size)
+    obstacles.forEach((obs, index) => {
+        ctx.drawImage(asteroidImg, obs.x, obs.y, obs.size, obs.size);  // New asteroid image applied
+        obs.y += obs.speed;
+
+        // Check for collision with player
+        if (checkCollision(player, obs)) {
+            endGame(false);
+        }
+
+        // Remove obstacles that are off-screen
+        if (obs.y > canvas.height) {
+            obstacles.splice(index, 1);
+        }
+    });
+
+    // Check if player reached the shelter
+    if (checkCollision(player, shelter)) {
+        endGame(true);
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+function spawnObstacles() {
+    setInterval(() => {
+        let obstacle = {
+            x: Math.random() * canvas.width,
+            y: 0,
+            size: 100,  // Obstacle size increased (50 * 2 = 100)
+            speed: Math.random() * 5 + 2
+        };
+        obstacles.push(obstacle);
+    }, 1000);
+}
+
+function checkCollision(rect1, rect2) {
+    return rect1.x < rect2.x + rect2.size &&
+           rect1.x + rect1.size > rect2.x &&
+           rect1.y < rect2.y + rect2.size &&
+           rect1.y + rect1.size > rect2.y;
+}
+
+function endGame(win) {
+    gameOver = true;
+    clearInterval(countdown);
+
+    if (win) {
+        messageDisplay.textContent = 'You reached the shelter! You survived!';
+    } else {
+        messageDisplay.textContent = 'You failed to find shelter. The Earth is destroyed!';
+    }
+
+    restartBtn.style.display = 'block'; // Show restart button
+}
+
+// Joystick controls for movement
+document.getElementById('up').addEventListener('touchstart', () => movePlayer('ArrowUp'));
+document.getElementById('down').addEventListener('touchstart', () => movePlayer('ArrowDown'));
+document.getElementById('left').addEventListener('touchstart', () => movePlayer('ArrowLeft'));
+document.getElementById('right').addEventListener('touchstart', () => movePlayer('ArrowRight'));
+
+// Function to handle player movement
+function movePlayer(direction) {
+    switch (direction) {
+        case 'ArrowLeft':
+            player.x -= player.speed;
+            if (player.x < 0) player.x = 0;
+            break;
+        case 'ArrowRight':
+            player.x += player.speed;
+            if (player.x + player.size > canvas.width) player.x = canvas.width - player.size;
+            break;
+        case 'ArrowUp':
+            player.y -= player.speed;
+            if (player.y < 0) player.y = 0;
+            break;
+        case 'ArrowDown':
+            player.y += player.speed;
+            if (player.y + player.size > canvas.height) player.y = canvas.height - player.size;
+            break;
+    }
+}
+
+// Restart game
+restartBtn.addEventListener('click', startGame);
+
+startGame();
+
+function spawnObstacles() {
+    setInterval(() => {
+        let obstacle = {
+            x: Math.random() * canvas.width,
+            y: 0,
+            size: 100,  // Obstacle size increased (50 * 2 = 100)
+            speed: Math.random() * 5 + 2
+        };
+        obstacles.push(obstacle);
+    }, 1500); // Increased interval to 1500 milliseconds
+}
